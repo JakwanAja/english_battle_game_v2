@@ -27,6 +27,7 @@ class GameStateManager:
         # HP
         self.p1_hp = TOTAL_HP
         self.p2_hp = TOTAL_HP
+        self._pending_gameover = False
 
         # Soal
         self.questions  = random.sample(ALL_QUESTIONS_POOL,
@@ -152,8 +153,16 @@ class GameStateManager:
                 self.proj         = None
                 self.state_timer  = 0.5
 
+                # Langsung ke result jika HP habis
+                if self.p1_hp <= 0 or self.p2_hp <= 0:
+                    self.state_timer = 1.2   # jeda dramatis sebelum layar gameover
+                    self._pending_gameover = True
+
         # Reset state ke idle setelah timer habis
         if self.state_timer <= 0:
+            if getattr(self, '_pending_gameover', False):
+                self._pending_gameover = False
+                self.scene = "gameover"
             self.p1_state = "idle"
             self.p2_state = "idle"
 

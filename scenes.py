@@ -358,6 +358,22 @@ def _draw_timer(surf, val, max_val):
     surf.blit(t, t.get_rect(center=(cx, 21)))
 
 
+
+def _draw_arrow_badge(surf, direction, cx, cy, col):
+    """Gambar badge dengan panah vector. direction: 0=atas,1=bawah,2=kiri,3=kanan"""
+    size = 22
+    pygame.draw.rect(surf, col, (cx-size//2, cy-size//2, size, size), border_radius=6)
+    pygame.draw.rect(surf, WHITE, (cx-size//2, cy-size//2, size, size), 2, border_radius=6)
+    # Gambar panah
+    if direction == 0:    # atas
+        pygame.draw.polygon(surf, WHITE, [(cx, cy-7),(cx-5,cy+4),(cx+5,cy+4)])
+    elif direction == 1:  # bawah
+        pygame.draw.polygon(surf, WHITE, [(cx, cy+7),(cx-5,cy-4),(cx+5,cy-4)])
+    elif direction == 2:  # kiri
+        pygame.draw.polygon(surf, WHITE, [(cx-7,cy),(cx+4,cy-5),(cx+4,cy+5)])
+    elif direction == 3:  # kanan
+        pygame.draw.polygon(surf, WHITE, [(cx+7,cy),(cx-4,cy-5),(cx-4,cy+5)])
+
 def _draw_key_badge(surf, key_str, cx, cy, col, size=36):
     """Key badge premium dengan inner glow."""
     r = pygame.Rect(cx - size//2, cy - size//2, size, size)
@@ -435,33 +451,56 @@ class FancyButton:
         bright = tuple(min(255, v+60) for v in self.color[:3])
         pygame.draw.rect(surf, bright, dr, 2, border_radius=20)
 
-        # Icon lingkaran
-        ix = dr.x + 30
-        iy = dr.centery
-        pygame.draw.circle(surf, (255,255,255,60), (ix, iy), 16)
-        pygame.draw.circle(surf, WHITE, (ix, iy), 16, 2)
+        # ── Icon (pygame.draw murni, tidak pakai unicode/emoji) ──
+        # Untuk tombol kecil (pause dll) tidak perlu icon
+        has_icon = self.icon not in (None, "pause") and dr.w > 140
+        if has_icon:
+            ix = dr.x + 28
+            iy = dr.centery
+            # Lingkaran background icon
+            pygame.draw.circle(surf, (255,255,255,80), (ix, iy), 14)
+            pygame.draw.circle(surf, WHITE, (ix, iy), 14, 2)
 
-        if self.icon == "sword":
-            pygame.draw.line(surf, (255,220,50), (ix-7,iy+7),(ix+7,iy-7), 3)
-            pygame.draw.line(surf, WHITE, (ix-9,iy+1),(ix-3,iy+7), 3)
-        elif self.icon == "info":
-            pygame.draw.circle(surf, WHITE, (ix, iy-5), 3)
-            pygame.draw.line(surf, WHITE, (ix,iy-1),(ix,iy+7), 3)
-        elif self.icon == "door":
-            pygame.draw.rect(surf, WHITE, (ix-6,iy-7,12,14), 2)
-            pygame.draw.line(surf, WHITE, (ix+2,iy+2),(ix+2,iy+7), 3)
-            pygame.draw.line(surf, WHITE, (ix+2,iy+7),(ix+8,iy+7), 2)
-        elif self.icon == "home":
-            pts = [(ix,iy-8),(ix-8,iy),(ix-5,iy),(ix-5,iy+7),(ix+5,iy+7),(ix+5,iy),(ix+8,iy)]
-            pygame.draw.polygon(surf, WHITE, pts, 2)
-        elif self.icon == "exit":
-            pygame.draw.line(surf, WHITE, (ix-5,iy-5),(ix+5,iy+5), 3)
-            pygame.draw.line(surf, WHITE, (ix+5,iy-5),(ix-5,iy+5), 3)
-        elif self.icon == "next":
-            pygame.draw.polygon(surf, WHITE, [(ix-4,iy-7),(ix-4,iy+7),(ix+8,iy)])
+            if self.icon == "sword":
+                # Pedang diagonal
+                pygame.draw.line(surf, (255,230,60), (ix-7,iy+7),(ix+7,iy-7), 3)
+                pygame.draw.line(surf, (255,230,60), (ix-7,iy+7),(ix-4,iy+4), 2)
+                pygame.draw.rect(surf, WHITE, (ix+3,iy-9,4,4))
+            elif self.icon == "info":
+                # Huruf i
+                pygame.draw.circle(surf, WHITE, (ix, iy-5), 2)
+                pygame.draw.rect(surf, WHITE, (ix-2, iy-1, 4, 9))
+            elif self.icon == "home":
+                # Rumah sederhana
+                pygame.draw.polygon(surf, WHITE, [(ix,iy-8),(ix-8,iy-1),(ix+8,iy-1)], 0)
+                pygame.draw.rect(surf, WHITE, (ix-5,iy-1,10,9))
+                pygame.draw.rect(surf, self.color, (ix-2,iy+1,4,7))
+            elif self.icon == "exit":
+                # X
+                pygame.draw.line(surf, WHITE, (ix-5,iy-5),(ix+5,iy+5), 3)
+                pygame.draw.line(surf, WHITE, (ix+5,iy-5),(ix-5,iy+5), 3)
+            elif self.icon == "next":
+                # Segitiga play kanan
+                pygame.draw.polygon(surf, WHITE, [(ix-5,iy-7),(ix-5,iy+7),(ix+8,iy)])
+            elif self.icon == "restart":
+                # Lingkaran panah restart
+                import math as _m
+                for a in range(30, 300, 20):
+                    ra = _m.radians(a)
+                    pygame.draw.circle(surf, WHITE,
+                        (ix+int(8*_m.cos(ra)), iy+int(8*_m.sin(ra))), 2)
+                pygame.draw.polygon(surf, WHITE, [(ix+8,iy-5),(ix+8,iy+5),(ix+14,iy)])
 
-        # Label
-        lx = dr.centerx + 12
+        # Untuk tombol pause (kecil, hanya ikon)
+        if self.icon == "pause":
+            ix, iy = dr.centerx, dr.centery
+            pygame.draw.rect(surf, WHITE, (ix-6, iy-8, 4, 16))
+            pygame.draw.rect(surf, WHITE, (ix+2, iy-8, 4, 16))
+            lx = dr.centerx
+        else:
+            lx = dr.centerx + (14 if has_icon else 0)
+
+        # ── Label ──
         draw_text_center(surf, self.label, fM, WHITE, lx, dr.centery)
 
 
@@ -559,14 +598,14 @@ def render_howto(screen, gs, btn_back):
 
 
 # ── SCENE: GAME ───────────────────────────────────────────────────────────
-def render_game(screen, gs, btn_next, btn_exit_battle):
+def render_game(screen, gs, btn_next, btn_pause):
     from constants import TOTAL_HP, ROUND_TIMER
 
     _draw_bg(screen, "game", gs.anim_time)
 
     # ── Karakter ──
-    _draw_char(screen, True,  145, H-130, gs.p1_state, gs.anim_time, 1.0)
-    _draw_char(screen, False, W-145, H-130, gs.p2_state, gs.anim_time, 1.0)
+    _draw_char(screen, True,  145, H-108, gs.p1_state, gs.anim_time, 1.6)
+    _draw_char(screen, False, W-145, H-108, gs.p2_state, gs.anim_time, 1.6)
 
     # ── Proyektil & Partikel ──
     if gs.proj:
@@ -600,10 +639,10 @@ def render_game(screen, gs, btn_next, btn_exit_battle):
         _draw_timer(screen, gs.round_timer, ROUND_TIMER)
 
     # ── Panel Soal ──
-    PANEL_W = 480
+    PANEL_W = 500
     PANEL_X = W//2 - PANEL_W//2
-    PANEL_Y = 108
-    PANEL_H = 400
+    PANEL_Y = 100
+    PANEL_H = 395
 
     # Panel soal — background solid terang supaya teks opsi terbaca
     pygame.draw.rect(screen, PANEL_BG, (PANEL_X, PANEL_Y, PANEL_W, PANEL_H), border_radius=18)
@@ -617,7 +656,7 @@ def render_game(screen, gs, btn_next, btn_exit_battle):
 
     # ── Opsi Jawaban ──
     P1_KEYS_LABELS = ["Z","X","C","V"]
-    P2_KEYS_LABELS = ["↑","↓","←","→"]
+    P2_KEYS_LABELS = ["UP","DN","LT","RT"]
 
     OPT_W   = 330
     OPT_X   = W//2 - OPT_W//2
@@ -659,52 +698,177 @@ def render_game(screen, gs, btn_next, btn_exit_battle):
             bcol1 = UI_GREEN if i==q_data["ans"] else (40,60,120)
         _draw_key_badge(screen, P1_KEYS_LABELS[i], bx1 + BADGE_W//2, oy + OPT_H//2, bcol1)
 
-        # Badge P2 kanan
+        # Badge P2 kanan — gambar panah vector
         bx2 = OPT_X + OPT_W + GAP
         bcol2 = P2_COL
         if gs.answered:
             bcol2 = UI_GREEN if i==q_data["ans"] else (120,60,20)
-        _draw_key_badge(screen, P2_KEYS_LABELS[i], bx2 + BADGE_W//2, oy + OPT_H//2, bcol2)
+        _draw_arrow_badge(screen, i, bx2 + BADGE_W//2, oy + OPT_H//2, bcol2)
 
     # ── Banner & Penjelasan setelah dijawab ──
     if gs.answered and gs.proj is None:
-        by = PANEL_Y + PANEL_H - 90
-
         if gs.winner == "p1":
-            banner, bcol = "⚡ P1 CORRECT!", P1_COL
+            banner, bcol = "P1 CORRECT!", P1_COL
         elif gs.winner == "p2":
-            banner, bcol = "⚡ P2 CORRECT!", P2_COL
+            banner, bcol = "P2 CORRECT!", P2_COL
         else:
-            banner, bcol = "✘ NO ONE CORRECT", (220, 200, 50)
+            banner, bcol = "TIME UP / NO ANSWER", (160, 140, 30)
 
-        # Banner pill
-        bt = fM.render(banner, True, WHITE)
-        br = bt.get_rect(center=(W//2, by))
-        _draw_glass_panel(screen, (br.x-16, br.y-6, br.w+32, br.h+12),
-                          tint=bcol, alpha=200, radius=12, border_col=bcol, border_w=2, glow=True)
-        screen.blit(bt, br)
+        # ── Penjelasan di dalam panel, setelah opsi ──
+        exp_y = PANEL_Y + PANEL_H - 62
 
-        # Penjelasan
-        exp_lines = wrap_text(fXS, q_data["exp"], PANEL_W - 40)
-        for li, line in enumerate(exp_lines):
+        # Strip tipis explanation di bagian bawah panel
+        exp_bg = pygame.Surface((PANEL_W - 20, 52), pygame.SRCALPHA)
+        exp_bg.fill((*bcol[:3], 28))
+        screen.blit(exp_bg, (PANEL_X + 10, exp_y))
+        pygame.draw.rect(screen, bcol, (PANEL_X+10, exp_y, PANEL_W-20, 52), 2, border_radius=8)
+
+        # Nama pemenang kecil di kiri strip
+        winner_t = fXS.render(banner, True, bcol)
+        screen.blit(winner_t, (PANEL_X+18, exp_y+4))
+
+        # Teks penjelasan
+        exp_clean = q_data["exp"] if q_data["exp"] else ""
+        exp_lines = wrap_text(fXS, exp_clean, PANEL_W - 30)
+        for li, line in enumerate(exp_lines[:2]):   # max 2 baris
             draw_text_center(screen, line, fXS, Q_TEXT_COL,
-                             W//2, by + 30 + li*18, shadow=False)
+                             W//2, exp_y + 20 + li*16, shadow=False)
 
         btn_next.draw(screen)
 
     # ── Exit battle button (pojok kanan bawah) ──
-    btn_exit_battle.draw(screen)
+    btn_pause.draw(screen)
 
     # ── Key hint strip bawah ──
     hint_y = H - 18
     for i, lbl in enumerate(["Z","X","C","V"]):
         _draw_key_badge(screen, lbl, 22 + i*38, hint_y, P1_COL, size=30)
-    for i, lbl in enumerate(["↑","↓","←","→"]):
-        _draw_key_badge(screen, lbl, W-136 + i*38, hint_y, P2_COL, size=30)
+    for i in range(4):
+        _draw_arrow_badge(screen, i, W-136 + i*38, hint_y, P2_COL)
 
 
 # ── SCENE: RESULT ─────────────────────────────────────────────────────────
-def render_result(screen, gs, btn_home):
+# ── PAUSE MENU ────────────────────────────────────────────────────────────
+def render_pause(screen, gs, btn_resume, btn_restart_pause, btn_quit_pause):
+    """Overlay pause menu di atas game."""
+    # Dim overlay
+    overlay = pygame.Surface((W, H), pygame.SRCALPHA)
+    overlay.fill((0, 0, 0, 160))
+    screen.blit(overlay, (0, 0))
+
+    # Panel
+    pw, ph = 340, 280
+    px, py = W//2 - pw//2, H//2 - ph//2
+    pygame.draw.rect(screen, (30, 22, 12), (px, py, pw, ph), border_radius=20)
+    pygame.draw.rect(screen, PAL_GOLD, (px, py, pw, ph), 3, border_radius=20)
+
+    # Header
+    pygame.draw.rect(screen, PAL_BROWN, (px, py, pw, 56), border_radius=20)
+    pygame.draw.rect(screen, PAL_BROWN, (px, py+36, pw, 20))
+    # Ikon pause (dua garis vertikal)
+    pix, piy = W//2 - 52, py+28
+    pygame.draw.rect(screen, PAL_GOLD, (pix,    piy-12, 7, 24))
+    pygame.draw.rect(screen, PAL_GOLD, (pix+11, piy-12, 7, 24))
+    draw_text_center(screen, "PAUSED", fL, PAL_GOLD, W//2+10, py+28)
+
+    draw_text_center(screen, "Game is paused", fXS, (200, 190, 170), W//2, py+80)
+
+    btn_resume.draw(screen)
+    btn_restart_pause.draw(screen)
+    btn_quit_pause.draw(screen)
+
+
+def render_gameover(screen, gs, btn_restart_go, btn_home_go):
+    """Layar Game Over ketika HP salah satu habis."""
+    _draw_bg(screen, "result", gs.anim_time)
+    draw_confetti(screen)
+
+    overall = gs.get_overall_winner()
+    t = gs.anim_time
+
+    if overall == "p1":
+        win_col, win_label, win_char = P1_COL, "Player 1 Wins!", True
+    elif overall == "p2":
+        win_col, win_label, win_char = P2_COL, "Player 2 Wins!", False
+    else:
+        win_col, win_label, win_char = PAL_GOLD, "It's a Draw!", None
+
+    # Panel
+    px, py, pw, ph = W//2 - 270, 45, 540, 570
+    pygame.draw.rect(screen, (255, 252, 240), (px, py, pw, ph), border_radius=22)
+    pygame.draw.rect(screen, win_col, (px, py, pw, ph), 4, border_radius=22)
+
+    # Glow
+    for gi in range(3, 0, -1):
+        gs2 = pygame.Surface((pw+gi*10, ph+gi*10), pygame.SRCALPHA)
+        pygame.draw.rect(gs2, (*win_col[:3], 22*gi), (0,0,pw+gi*10,ph+gi*10), border_radius=24+gi*3)
+        screen.blit(gs2, (px-gi*5, py-gi*5))
+
+    # Header strip
+    pygame.draw.rect(screen, win_col, (px, py, pw, 94), border_radius=22)
+    pygame.draw.rect(screen, win_col, (px, py+22, pw, 72))
+
+    # Teks header
+    draw_text_center(screen, "GAME OVER!", fXL, WHITE, W//2, py+38)
+    draw_text_center(screen, win_label,    fL,  (255,245,180), W//2, py+74)
+
+    # Karakter
+    char_y = py + 258
+    bounce = int(abs(math.sin(t * 4)) * 16)
+    if win_char is None:
+        _draw_char(screen, True,  W//2-90, char_y-bounce, "win", t, 1.3)
+        _draw_char(screen, False, W//2+90, char_y-bounce, "win", t, 1.3)
+    else:
+        _draw_char(screen, win_char, W//2, char_y-bounce, "win", t, 1.7)
+
+    # Stars
+    for si in range(5):
+        angle = t*2.5 + si*(2*math.pi/5)
+        sx = W//2 + int(math.cos(angle)*78)
+        sy = char_y-30 + int(math.sin(angle)*32)
+        sa = int(180+75*math.sin(t*3+si))
+        ss = pygame.Surface((14,14), pygame.SRCALPHA)
+        pygame.draw.circle(ss, (*PAL_GOLD, sa), (7,7), 6)
+        screen.blit(ss, (sx-7, sy-7))
+
+    # Divider
+    div_y = py + 340
+    pygame.draw.line(screen, win_col, (px+30, div_y), (px+pw-30, div_y), 2)
+    lbl = fXS.render("S C O R E B O A R D", True, win_col)
+    screen.blit(lbl, lbl.get_rect(center=(W//2, div_y-14)))
+
+    # Score cards
+    cards = [
+        ("P1  LEXI",  gs.p1_hp, gs.p1_score, P1_COL, overall=="p1"),
+        ("P2  SLIME", gs.p2_hp, gs.p2_score, P2_COL, overall=="p2"),
+    ]
+    for row, (name, hp, score, col, is_winner) in enumerate(cards):
+        ry = div_y + 18 + row*72
+        rw = pw - 60; rx = px + 30
+        bg_c = (255,250,225) if is_winner else (245,242,230)
+        pygame.draw.rect(screen, bg_c, (rx, ry, rw, 58), border_radius=12)
+        bc = col if is_winner else (180,170,150)
+        pygame.draw.rect(screen, bc, (rx, ry, rw, 58), 3 if is_winner else 1, border_radius=12)
+        if is_winner:
+            cr = fL.render("👑", True, PAL_GOLD)
+            screen.blit(cr, (rx+8, ry+10))
+        nt = fS.render(name, True, col)
+        screen.blit(nt, (rx+(44 if is_winner else 12), ry+8))
+        pip_x = rx+(44 if is_winner else 12)
+        for i in range(TOTAL_HP):
+            from constants import TOTAL_HP as THP
+            pip_c = col if i < hp else (200,190,180)
+            pygame.draw.circle(screen, pip_c, (pip_x+i*22, ry+38), 8)
+            if i < hp:
+                pygame.draw.circle(screen, WHITE, (pip_x+i*22-3, ry+35), 3)
+        st = fL.render(f"{score} pts", True, (40,30,20))
+        screen.blit(st, st.get_rect(right=rx+rw-14, centery=ry+29))
+
+    btn_restart_go.draw(screen)
+    btn_home_go.draw(screen)
+
+
+def render_result(screen, gs, btn_home, btn_restart_result):
     _draw_bg(screen, "result", gs.anim_time)
 
     # ── Confetti VFX di belakang panel ──
@@ -823,4 +987,5 @@ def render_result(screen, gs, btn_home):
         score_t = fL.render(f"{score} pts", True, (40, 30, 20))
         screen.blit(score_t, score_t.get_rect(right=rx+rw-14, centery=ry+29))
 
+    btn_restart_result.draw(screen)
     btn_home.draw(screen)
